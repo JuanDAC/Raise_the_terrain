@@ -35,32 +35,36 @@ bounds_t *get_bounds(char *data_raw)
 {
 	int i;
 	bounds_t *bounds;
+	DWORD min_bound, width, height, max_bound;
 
 	bounds = malloc(sizeof(bounds_t));
 	if (!bounds)
 		return (NULL);
-	bounds->deep = 0;
-	bounds->width = 0;
+	bounds->axis_y = 0;
+	bounds->axis_x = 0;
 	for (i = 0; data_raw[i] != '\0'; i++)
 	{
-		bounds->width += !bounds->deep && data_raw[i] == ' ';
-		bounds->deep += data_raw[i] == '\n';
+		bounds->axis_x += !bounds->axis_y && data_raw[i] == ' ';
+		bounds->axis_y += data_raw[i] == '\n';
 	}
-	bounds->width += 1;
-	bounds->deep += 1;
+	bounds->axis_x += 1;
+	bounds->axis_y += 1;
 	bounds->angle = 0;
+
+	get_windows_bound(&bounds->width, &bounds->height, &bounds->min_bound);
+	bounds->max_bound = bounds->width == bounds->min_bound ? bounds->height : bounds->width;
 	return (bounds);
 }
 
 
 axis_t **get_directions(char *data_raw, bounds_t *bounds)
 {
-	int i, max = 0;
+	int i, lenght = 0;
 	axis_t *local_directions[BUFSIZ];
 	axis_t **directions;
 	char *current = data_raw;
 
-	max = (bounds->deep * bounds->width);
+	lenght = (bounds->axis_x * bounds->axis_y);
 	for (i = 0; current; i++)
 	{
 		current = strtok(i ? NULL : data_raw, " \n");
@@ -78,8 +82,6 @@ axis_t **get_directions(char *data_raw, bounds_t *bounds)
 			local_directions[i]->z = 0;
 			local_directions[i]->x = 0;
 			local_directions[i]->y = 0;
-			local_directions[i]->x_next = 0;
-			local_directions[i]->y_next = 0;
 		}
 		else
 		{ 
@@ -97,14 +99,18 @@ axis_t **get_directions(char *data_raw, bounds_t *bounds)
 }
 
 
-DWORD get_windows_bound(void)
+void get_windows_bound(DWORD *width, DWORD *height, DWORD *minSize)
 {
-	DWORD width = 0;
-	DWORD height = 0;
+	DWORD local_width = 0;
+	DWORD local_height = 0;
 
-	width = GetSystemMetrics(SM_CXSCREEN) - GetSystemMetrics(SM_CXSIZE);
-	height = GetSystemMetrics(SM_CYSCREEN) - GetSystemMetrics(SM_CYSIZE) 
+	local_width = GetSystemMetrics(SM_CXSCREEN);
+	local_height = GetSystemMetrics(SM_CYSCREEN) - GetSystemMetrics(SM_CYSIZE)
 		- GetSystemMetrics(SM_CYMENU) - GetSystemMetrics(SM_CYCAPTION);
-
-	return ((width < height ? width : height) - 10);
+	if (width)
+		*width = local_width;
+	if (height)
+		*height = local_height;
+	if (minSize)
+		*minSize = ((local_width < local_height ? local_width : local_height));
 }

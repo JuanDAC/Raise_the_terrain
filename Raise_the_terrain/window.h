@@ -43,16 +43,18 @@ typedef struct axis_s
 	float y;
 	float z;
 	float z_raw;
-	float x_next;
-	float y_next;
 } axis_t;
 
 
 typedef struct bounds_s
 {
-	int deep;
 	float angle;
-	int width;
+	float axis_x;
+	float axis_y;
+	DWORD width;
+	DWORD height;
+	DWORD min_bound;
+	DWORD max_bound;
 } bounds_t;
 bounds_t *get_bounds(char *data_raw);
 
@@ -64,5 +66,5 @@ void info_error(char *message_error);
 char *read_file(char *file_direction);
 bounds_t *get_bounds(char *data_raw);
 axis_t **get_directions(char *data_raw, bounds_t *bounds);
-DWORD get_windows_bound(void);
+void get_windows_bound(DWORD *width, DWORD *height, DWORD *minSize);
 int init(axis_t **directions, bounds_t * bounds);
