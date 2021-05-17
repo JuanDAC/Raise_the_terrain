@@ -1,5 +1,10 @@
 #include "window.h"
-
+/**
+ * info_error - handler error 
+ *
+ * @message_error: message error
+ *
+*/
 void info_error(char *message_error)
 {
 	size_t bytes_readed = 0;
@@ -8,10 +13,37 @@ void info_error(char *message_error)
 		exit(EOF);
 }
 
+/**
+ * is_map - valid if it's a valid map the content of the file 
+ *
+ * @data_raw: data without processing
+ *
+ * Return: true if it's a valid map else return false
+*/
+bool is_map(char *data_raw)
+{
+	if (data_raw == NULL)
+		return (false);
+	if (*data_raw == '\0')
+		return (true);
+	if (*data_raw == '\n' || *data_raw == ' ' || *data_raw == '-')
+		return (is_map(data_raw + 1));
+	if (*data_raw >= '0' && *data_raw <= '9')
+		return (is_map(data_raw + 1));
+	return (false);
+}
+
+/**
+ * read_file - read content of file
+ *
+ * @file_direction: direction of the file to read
+ *
+ * Return: data without processing
+*/
 char *read_file(char *file_direction)
 {
 	size_t file_pointer = 0;
-	char lines[BUFSIZ];
+	char line[BUFSIZ];
 	char *content = NULL;
 	size_t line_size = 0;
 
@@ -19,23 +51,31 @@ char *read_file(char *file_direction)
 	if (file_pointer == -1)
 		return (NULL);
 
-	line_size = read(file_pointer, lines, BUFSIZ);
+	line_size = read(file_pointer, line, BUFSIZ);
 	if (line_size == EOF)
 		return (NULL);
-	lines[line_size] = '\0';
+	line[line_size] = '\0';
 	close(file_pointer);
-	content = malloc(sizeof(char) * strlen(lines));
+	if (!is_map(line))
+		return (NULL);
+	content = malloc(sizeof(char) * strlen(line));
 	if (!content)
 		return (NULL);
-	strcpy(content, lines);
+	strcpy(content, line);
 	return (content);
 }
 
+/**
+ * get_bounds - read the bounds and storage in the bounds struct
+ *
+ * @data_raw: data without processing
+ *
+ * Return: structure that contain the limits if gid
+*/
 bounds_t *get_bounds(char *data_raw)
 {
 	int i;
 	bounds_t *bounds;
-	DWORD min_bound, width, height, max_bound;
 
 	bounds = malloc(sizeof(bounds_t));
 	if (!bounds)
@@ -45,7 +85,7 @@ bounds_t *get_bounds(char *data_raw)
 	for (i = 0; data_raw[i] != '\0'; i++)
 	{
 		bounds->axis_x += !bounds->axis_y && data_raw[i] == ' ';
-		bounds->axis_y += data_raw[i] == '\n';
+		bounds->axis_y += data_raw[i] == '\n'; 
 	}
 	bounds->axis_x += 1;
 	bounds->axis_y += 1;
@@ -56,7 +96,14 @@ bounds_t *get_bounds(char *data_raw)
 	return (bounds);
 }
 
-
+/**
+ * get_directions - read the directions and return the struct storage
+ *
+ * @data_raw: data without processing
+ * @bounds: limits of grid 
+ *
+ * Return: array of strctures storege the directions
+*/
 axis_t **get_directions(char *data_raw, bounds_t *bounds)
 {
 	int i, lenght = 0;
@@ -64,7 +111,7 @@ axis_t **get_directions(char *data_raw, bounds_t *bounds)
 	axis_t **directions;
 	char *current = data_raw;
 
-	lenght = (bounds->axis_x * bounds->axis_y);
+	lenght = (int)(bounds->axis_x * bounds->axis_y);
 	for (i = 0; current; i++)
 	{
 		current = strtok(i ? NULL : data_raw, " \n");
@@ -78,7 +125,7 @@ axis_t **get_directions(char *data_raw, bounds_t *bounds)
 					free(local_directions[i]);
 				return (NULL);
 			}
-			local_directions[i]->z_raw = atoi(current);
+			local_directions[i]->z_raw = (float)atoi(current);
 			local_directions[i]->z = 0;
 			local_directions[i]->x = 0;
 			local_directions[i]->y = 0;
@@ -94,12 +141,21 @@ axis_t **get_directions(char *data_raw, bounds_t *bounds)
 
 	for (i = 0; local_directions[i]; i++)
 		directions[i] = local_directions[i];
+	directions[i] = NULL;
 
 	return (directions);
 }
 
 
-void get_windows_bound(DWORD *width, DWORD *height, DWORD *minSize)
+/**
+ * get_windows_bound - get the windows screem bounds
+ *
+ * @width: width size of screen
+ * @height: height size of screen
+ * @min_size: min_size size of screen
+ *
+*/
+void get_windows_bound(DWORD *width, DWORD *height, DWORD *min_size)
 {
 	DWORD local_width = 0;
 	DWORD local_height = 0;
@@ -111,6 +167,6 @@ void get_windows_bound(DWORD *width, DWORD *height, DWORD *minSize)
 		*width = local_width;
 	if (height)
 		*height = local_height;
-	if (minSize)
-		*minSize = ((local_width < local_height ? local_width : local_height));
+	if (min_size)
+		*min_size = ((local_width < local_height ? local_width : local_height));
 }

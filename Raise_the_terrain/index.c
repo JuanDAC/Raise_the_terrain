@@ -1,9 +1,15 @@
 #include "window.h"
 
+/**
+ * main - Entry point
+ *
+ * @argc: conunter of argimens of the program
+ * @argv: in first position the direction of file
+*/
 int main(int argc, char *argv[])
 {
 	SDL_Instance instance;
-	int first = 1, i;
+	int first = 1;
 	char *data_raw = NULL;
 	bounds_t *bounds = NULL;
 	axis_t **directions = NULL;
@@ -52,6 +58,12 @@ int main(int argc, char *argv[])
 	return (0);
 }
 
+/**
+ * poll_events - Entry point
+ *
+ * @argc: conunter of argimens of the program
+ * @argv: in first position the direction of file
+*/
 int poll_events(axis_t **directions, bounds_t * bounds)
 {
 	SDL_Event event;
@@ -80,20 +92,19 @@ int poll_events(axis_t **directions, bounds_t * bounds)
 	return (0);
 }
 
-// numeros aleatoriso 
-#define WX(X, Y, WB, INC) (((INC) * (X) - (INC) * (Y)) + ((WB / 2)))
-#define WY(X, Y, Z, INC) (((1 - (INC)) * (X)) + ((1 - (INC)) * (Y)) - (Z))
-
-// numeros aleatoriso 
-#define get_pos_angle_x(X, Y, ZS, A) (((X) - (ZS)) * cos(A) - ((Y) - (ZS)) * sin(A) + (ZS))
-#define get_pos_angle_y(X, Y, ZS, A) (((X) - (ZS)) * sin(A) + ((Y) - (ZS)) * cos(A) + (ZS))
-
-int init(axis_t **directions, bounds_t * bounds)
+/**
+ * init - update data in frame
+ *
+ * @directions: Array of directions 
+ * @bounds: limits of grid 
+ * 
+*/
+void init(axis_t **directions, bounds_t * bounds)
 {
 	int i, j, k;
 
-	DWORD tile_row = bounds->max_bound / (bounds->axis_x + 3);
-	DWORD tile_column = bounds->max_bound / (bounds->axis_y + 3);
+	DWORD tile_row = (DWORD)(bounds->max_bound / (bounds->axis_x + 3));
+	DWORD tile_column = (DWORD)(bounds->max_bound / (bounds->axis_y + 3));
 	int row_displacement = tile_row * 3;
 	int column_displacement = tile_column * 3;
 
@@ -101,19 +112,26 @@ int init(axis_t **directions, bounds_t * bounds)
 	for (i = 0; i < bounds->axis_x; i++)
 		for (j = 0; j < bounds->axis_y; j++, k++)
 		{
-			directions[k]->x = tile_row * i + row_displacement;
-			directions[k]->y = tile_column * j + column_displacement;
+			directions[k]->x = (float)tile_row * i + row_displacement;
+			directions[k]->y = (float)tile_column * j + column_displacement;
 		}
 }
 
-int update(axis_t **directions, bounds_t * bounds)
+/**
+ * update - update data in frame
+ *
+ * @directions: Array of directions 
+ * @bounds: limits of grid 
+ * 
+*/
+void update(axis_t **directions, bounds_t *bounds)
 {
 	int k;
 	float change = 0.5;
-	float X, Y, XN, YN;
+	float X, Y;
 
 	bounds->angle = 0;
-	float a = bounds->angle * M_PI / 180;
+	float a = (float)(bounds->angle * M_PI / 180);
 	for (k = 0; k < bounds->axis_x * bounds->axis_y; k++)
 	{
 		if (directions[k]->z < directions[k]->z_raw - (change * 2) || directions[k]->z > directions[k]->z_raw + (change * 2))
@@ -124,15 +142,20 @@ int update(axis_t **directions, bounds_t * bounds)
 		X = directions[k]->x;
 		Y = directions[k]->y;
 		
-		directions[k]->x = get_pos_angle_x(X, Y, bounds->max_bound / 2, a);
-		directions[k]->y = get_pos_angle_y(X, Y, bounds->max_bound / 2, a);
+		directions[k]->x = (float)get_pos_angle_x(X, Y, bounds->max_bound / 2, a);
+		directions[k]->y = (float)get_pos_angle_y(X, Y, bounds->max_bound / 2, a);
 	}
 }
 
-void draw_stuff(SDL_Instance *instance, axis_t **directions, bounds_t *bounds)
+/**
+ * color_handler - Color handler  
+ *  
+ * @instance: - instance of render object
+ * 
+*/
+void color_handler(SDL_Instance *instance)
 {
-	int i, j, k;
-	float inc = 0.75, red, blue, green;
+	Uint8 red, blue, green;
 	time_t t;
 	srand((unsigned)time(&t));
 
@@ -140,9 +163,24 @@ void draw_stuff(SDL_Instance *instance, axis_t **directions, bounds_t *bounds)
 	blue = rand() % 210;
 	green = rand() % 100 + 154;
 
-	SDL_RenderClear(instance->renderer); /*    r     g              b          a          */
-	/* TODO create a function to handler*/
 	SDL_SetRenderDrawColor(instance->renderer, red, green, blue, SDL_ALPHA_OPAQUE);
+}
+
+/**
+ * color_handler - Color handler  
+ *  
+ * @instance: - instance of render object
+ * @bounds: limits of grid 
+ * @directions: storage of directions
+ * 
+*/
+void draw_stuff(SDL_Instance *instance, axis_t **directions, bounds_t *bounds)
+{
+	int i, j, k;
+	float inc = 0.75;
+
+	SDL_RenderClear(instance->renderer); 
+	color_handler(instance);
 
 	k = 0;
 	for (i = 0; i < bounds->axis_x; i++)
@@ -150,38 +188,40 @@ void draw_stuff(SDL_Instance *instance, axis_t **directions, bounds_t *bounds)
 		{
 			if (i < bounds->axis_x - 1)
 				SDL_RenderDrawLine(instance->renderer,
-					WX(directions[k]->x, directions[k]->y, bounds->width, inc),
-					WY(directions[k]->x, directions[k]->y, directions[k]->z, inc),
-					WX(directions[k + (int)bounds->axis_x]->x, directions[k]->y, bounds->width, inc),
-					WY(directions[k + (int)bounds->axis_x]->x, directions[k]->y, directions[k + (int)bounds->axis_x]->z, inc)
+					(int)WX(directions[k]->x, directions[k]->y, bounds->width, inc),
+					(int)WY(directions[k]->x, directions[k]->y, directions[k]->z, inc),
+					(int)WX(directions[k + (int)bounds->axis_x]->x, directions[k]->y, bounds->width, inc),
+					(int)WY(directions[k + (int)bounds->axis_x]->x, directions[k]->y, directions[k + (int)bounds->axis_x]->z, inc)
 				);
 			if (j < bounds->axis_y - 1)
 				SDL_RenderDrawLine(instance->renderer,
-					WX(directions[k]->x, directions[k]->y, bounds->width, inc),
-					WY(directions[k]->x, directions[k]->y, directions[k]->z, inc),
-					WX(directions[k]->x, directions[k + 1]->y, bounds->width, inc),
-					WY(directions[k]->x, directions[k + 1]->y, directions[k + 1]->z , inc)
+					(int)WX(directions[k]->x, directions[k]->y, bounds->width, inc),
+					(int)WY(directions[k]->x, directions[k]->y, directions[k]->z, inc),
+					(int)WX(directions[k]->x, directions[k + 1]->y, bounds->width, inc),
+					(int)WY(directions[k]->x, directions[k + 1]->y, directions[k + 1]->z , inc)
 				);
 	}
 }
 /**
- * init_instance - entry point
- * Return: Alwais void
+ * init_instance - init the instance of window
+ *
+ * @instance: - instance of render object
+ * Return: integer to validate error 
  */
 int init_instance(SDL_Instance *instance)
 {
 	DWORD windows_bound, width, height;
 
 	if (SDL_Init(SDL_INIT_VIDEO) != 0)
-		return (1);
+		return (EXIT_FAILURE);
 	get_windows_bound(&width, &height, &windows_bound);
 
 	instance->window = SDL_CreateWindow(
 		"Raising the ground",
 		SDL_WINDOWPOS_CENTERED,
 		SDL_WINDOWPOS_CENTERED,
-		width, /*W*/
-		height, /*H*/
+		width,
+		height,
 		SDL_WINDOW_SHOWN
 		| SDL_WINDOW_INPUT_FOCUS 
 		| SDL_WINDOW_MAXIMIZED
@@ -190,7 +230,7 @@ int init_instance(SDL_Instance *instance)
 	if (!instance->window)
 	{
 		SDL_Quit();
-		return (1);
+		return (EXIT_FAILURE);
 	}
 
 	instance->renderer = SDL_CreateRenderer(
@@ -202,7 +242,7 @@ int init_instance(SDL_Instance *instance)
 	{
 		SDL_DestroyWindow(instance->window);
 		SDL_Quit();
-		return (1);
+		return (EXIT_FAILURE);
 	}
 
 	return (EXIT_SUCCESS);
